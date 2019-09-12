@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="white">#ffffff</color>
+    <color name="dark">#000000</color>
+
+    <color name="transparent">@android:color/transparent</color>
+    <color name="pageBackground">#F2F4F7</color>
+    <color name="text_color_child">#6A6A6A</color>
+    <!--和组体色相同：colorPrimaryDark-->
+    <color name="text_color_theme">#00574B</color>
+</resources>

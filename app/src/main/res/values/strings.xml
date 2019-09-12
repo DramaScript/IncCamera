@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">映可相机</string>
+    <string name="app_splash"><font color="#fff">欢迎来到\n</font><font color="#D81B60" size="17"><b>  映可相机~</b></font> </string>
+    <string name="app_permis">映可相机应用需要以下权限，请允许</string>
+</resources>

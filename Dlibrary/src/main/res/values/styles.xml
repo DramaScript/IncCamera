@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="ToolbarTheme" parent="ThemeOverlay.AppCompat.ActionBar">
+        <!--没有android:-->
+        <item name="actionMenuTextColor">@color/white</item>
+        <item name="android:textSize">14sp</item>
+        <!--只针对ToolBar标题颜色进行设置-->
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="contentInsetStart">0dp</item>
+        <item name="contentInsetStartWithNavigation">0dp</item>
+        <item name="elevation">4dp</item>
+    </style>
+
+</resources>

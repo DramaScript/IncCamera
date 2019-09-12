@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <declare-styleable name="LoadDataLayout">
+        <attr name="loadingText" format="reference|string"/>
+        <attr name="loadingTextSize" format="integer"/>
+        <attr name="loadingTextColor" format="reference|color"/>
+        <attr name="loadingViewLayoutId" format="reference"/>
+
+        <attr name="emptyText"/>
+        <attr name="emptyImgId"/>
+        <attr name="emptyImageVisible"/>
+
+        <attr name="errorText"/>
+        <attr name="errorImgId"/>
+        <attr name="errorImageVisible"/>
+
+        <attr name="noNetWorkText"/>
+        <attr name="noNetWorkImgId"/>
+        <attr name="noNetWorkImageVisible"/>
+
+        <attr name="allTipTextColor"/>
+        <attr name="allTipTextSize"/>
+        <attr name="allPageBackgroundColor"/>
+
+        <attr name="reloadBtnText"/>
+        <attr name="reloadBtnTextSize"/>
+        <attr name="reloadBtnTextColor"/>
+        <attr name="reloadBtnBackgroundResource"/>
+        <attr name="reloadBtnVisible"/>
+        <attr name="reloadClickArea"/>
+
+    </declare-styleable>
+
+    <declare-styleable name="SwipeLoadDataLayout">
+        <attr name="emptyText"/>
+        <attr name="emptyImgId"/>
+        <attr name="emptyImageVisible"/>
+
+        <attr name="errorText"/>
+        <attr name="errorImgId"/>
+        <attr name="errorImageVisible"/>
+
+        <attr name="noNetWorkText"/>
+        <attr name="noNetWorkImgId"/>
+        <attr name="noNetWorkImageVisible"/>
+
+        <attr name="allTipTextColor"/>
+        <attr name="allTipTextSize"/>
+        <attr name="allPageBackgroundColor"/>
+
+        <attr name="reloadBtnText"/>
+        <attr name="reloadBtnTextSize"/>
+        <attr name="reloadBtnTextColor"/>
+        <attr name="reloadBtnBackgroundResource"/>
+        <attr name="reloadBtnVisible"/>
+        <attr name="reloadClickArea"/>
+    </declare-styleable>
+
+
+    <declare-styleable name="Themes">
+        <attr name="numberProgressBarStyle" format="reference" />
+    </declare-styleable>
+
+
+    <declare-styleable name="NumberProgressBar">
+        <attr name="progress" format="integer" />
+        <attr name="max" format="integer" />
+        <attr name="progress_unreached_color" format="color" />
+        <attr name="progress_reached_color" format="color" />
+        <attr name="progress_reached_bar_height" format="dimension" />
+        <attr name="progress_unreached_bar_height" format="dimension" />
+        <attr name="progress_text_size" format="dimension" />
+        <attr name="progress_text_color" format="color" />
+        <attr name="progress_text_offset" format="dimension" />
+        <attr name="progress_text_visibility" format="enum">
+            <enum name="visible" value="0" />
+            <enum name="invisible" value="1" />
+        </attr>
+    </declare-styleable>
+</resources>
