@@ -19,6 +19,11 @@ public class IncView extends GLSurfaceView {
 
     private IncRenderer incRenderer;
 
+    public void setmPath(String name) {
+        if (incRenderer!=null)
+            incRenderer.setPath(name);
+    }
+
     public IncView(Context context) {
         this(context, null);
     }
@@ -29,6 +34,7 @@ public class IncView extends GLSurfaceView {
         setEGLContextClientVersion(2);
         incRenderer = new IncRenderer(this);
         setRenderer(incRenderer);
+        incRenderer.setPath(System.currentTimeMillis()+"inc");
         //设置按需渲染 当我们调用 requestRender 请求GLThread 回调一次 onDrawFrame
         // 连续渲染 就是自动的回调onDrawFrame
         setRenderMode(RENDERMODE_WHEN_DIRTY);

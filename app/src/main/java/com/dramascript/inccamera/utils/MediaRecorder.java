@@ -13,6 +13,9 @@ import android.os.Looper;
 import android.support.annotation.RequiresApi;
 import android.view.Surface;
 
+import com.dramascript.inccamera.mvp.model.DataBase;
+import com.dramascript.inccamera.mvp.model.ImageCache;
+
 import java.io.IOException;
 import java.nio.ByteBuffer;
 
@@ -24,7 +27,7 @@ import java.nio.ByteBuffer;
 public class MediaRecorder {
 
     private final Context mContext;
-    private final String mPath;
+    private String mPath = "/sdcard/a.mp4";
     private final int mWidth;
     private final int mHeight;
     private final EGLContext mEglContext;
@@ -37,9 +40,9 @@ public class MediaRecorder {
     private int index;
     private float mSpeed;
 
-    public MediaRecorder(Context mContext, String mPath, int mWidth, int mHeight, EGLContext mEglContext) {
+    public MediaRecorder(Context mContext, int mWidth, int mHeight, EGLContext mEglContext) {
         this.mContext = mContext;
-        this.mPath = mPath;
+
         this.mWidth = mWidth;
         this.mHeight = mHeight;
         this.mEglContext = mEglContext;
@@ -207,7 +210,15 @@ public class MediaRecorder {
                 mInputSurface = null;
                 mHandler.getLooper().quitSafely();
                 mHandler = null;
+                ImageCache imageCache = new ImageCache();
+                imageCache.setImagePath(mPath);
+                imageCache.setType(1);
+                DataBase.getDataBase().insertCache(imageCache);
             }
         });
+    }
+
+    public void setPath(String path) {
+        this.mPath = path;
     }
 }

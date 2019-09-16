@@ -57,6 +57,11 @@ public class IncRenderer implements GLSurfaceView.Renderer, Camera.PreviewCallba
                 "/sdcard/seeta_fa_v1.1.bin");
     }
 
+    public void setPath(String name){
+        if (mMediaRecorder!=null)
+            mMediaRecorder.setPath("/sdcard/"+name+".mp4");
+    }
+
     @RequiresApi(api = Build.VERSION_CODES.JELLY_BEAN_MR1)
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
@@ -78,7 +83,7 @@ public class IncRenderer implements GLSurfaceView.Renderer, Camera.PreviewCallba
 
         //渲染线程的EGL上下文
         EGLContext eglContext = EGL14.eglGetCurrentContext();
-        mMediaRecorder = new MediaRecorder(mView.getContext(), "/sdcard/a.mp4", CameraHelper.HEIGHT, CameraHelper.WIDTH, eglContext);
+        mMediaRecorder = new MediaRecorder(mView.getContext(),  CameraHelper.HEIGHT, CameraHelper.WIDTH, eglContext);
     }
 
     /**

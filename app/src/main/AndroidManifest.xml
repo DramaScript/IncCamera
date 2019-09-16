@@ -31,7 +31,7 @@
         android:name=".App"
         android:theme="@style/AppTheme"
         tools:ignore="GoogleAppIndexingWarning">
-        <activity android:name=".SplashActivity"
+        <activity android:name=".mvp.view.activity.SplashActivity"
             android:theme="@style/SplashTheme">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -40,9 +40,9 @@
             </intent-filter>
         </activity>
         <activity
-            android:name=".MainActivity"
+            android:name=".mvp.view.activity.MainActivity"
             android:screenOrientation="portrait" />
-        <activity android:name=".CameraActivity"
+        <activity android:name=".mvp.view.activity.CameraActivity"
             android:theme="@style/AppTheme.FullScreen"
             android:screenOrientation="portrait"/>
     </application>

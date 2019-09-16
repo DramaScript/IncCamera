@@ -1,4 +1,4 @@
-package com.dramascript.inccamera;
+package com.dramascript.inccamera.mvp.view.activity;
 
 import android.Manifest;
 import android.os.Bundle;
@@ -6,10 +6,10 @@ import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
-import android.view.Window;
 import android.widget.Toast;
 
 import com.blankj.utilcode.util.ActivityUtils;
+import com.dramascript.inccamera.R;
 
 import java.util.List;
 

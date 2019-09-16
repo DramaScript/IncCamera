@@ -14,7 +14,7 @@ import android.widget.TextView;
 public class RecordButton extends TextView {
 
 
-    private OnRecordListener mListener;
+//    private OnRecordListener mListener;
 
     public RecordButton(Context context) {
         super(context);
@@ -25,33 +25,33 @@ public class RecordButton extends TextView {
     }
 
 
-    @Override
-    public boolean onTouchEvent(MotionEvent event) {
-        if (mListener == null) {
-            return false;
-        }
-        switch (event.getAction()) {
-            case MotionEvent.ACTION_DOWN:
-                setPressed(true);
-                mListener.onRecordStart();
-                break;
-            case MotionEvent.ACTION_UP:
-            case MotionEvent.ACTION_CANCEL:
-                setPressed(false);
-                mListener.onRecordStop();
-                break;
-        }
-        return true;
-    }
-
-
-    public void setOnRecordListener(OnRecordListener listener) {
-        mListener = listener;
-    }
-
-    public interface OnRecordListener {
-        void onRecordStart();
-
-        void onRecordStop();
-    }
+//    @Override
+//    public boolean onTouchEvent(MotionEvent event) {
+//        if (mListener == null) {
+//            return false;
+//        }
+//        switch (event.getAction()) {
+//            case MotionEvent.ACTION_DOWN:
+//                setPressed(true);
+//                mListener.onRecordStart();
+//                break;
+//            case MotionEvent.ACTION_UP:
+//            case MotionEvent.ACTION_CANCEL:
+//                setPressed(false);
+//                mListener.onRecordStop();
+//                break;
+//        }
+//        return true;
+//    }
+//
+//
+//    public void setOnRecordListener(OnRecordListener listener) {
+//        mListener = listener;
+//    }
+//
+//    public interface OnRecordListener {
+//        void onRecordStart();
+//
+//        void onRecordStop();
+//    }
 }
