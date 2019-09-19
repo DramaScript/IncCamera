@@ -7,24 +7,23 @@
 
 using namespace std;
 
+JavaVM *javaVM = NULL;
 IncFFmpeg *ffmpeg = 0;
-JavaVM *javaVm = 0;
+JavaCallHelper *javaCallHelper = 0;
 ANativeWindow *window = 0;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-JavaCallHelper *helper = 0;
 
 
 
 extern "C" {
-#include <libavutil/imgutils.h>
 
 JNIEXPORT jint JNICALL JNI_OnLoad(JavaVM *vm, void *reserved) {
-    javaVm = vm;
+    javaVM = vm;
     return JNI_VERSION_1_6;
 }
 
 //画画
-void render(uint8_t *data, int lineszie, int w, int h) {
+void renderFrame(uint8_t *data, int linesize, int w, int h) {
     pthread_mutex_lock(&mutex);
     if (!window) {
         pthread_mutex_unlock(&mutex);
@@ -42,14 +41,14 @@ void render(uint8_t *data, int lineszie, int w, int h) {
         pthread_mutex_unlock(&mutex);
         return;
     }
-    //填充rgb数据给dst_data
     uint8_t *dst_data = static_cast<uint8_t *>(window_buffer.bits);
-    // stride：一行多少个数据（RGBA） *4
+    //一行需要多少像素 * 4(RGBA)
     int dst_linesize = window_buffer.stride * 4;
-    //一行一行的拷贝
+    uint8_t *src_data = data;
+    int src_linesize = linesize;
+    //一次拷贝一行
     for (int i = 0; i < window_buffer.height; ++i) {
-        //memcpy(dst_data , data, dst_linesize);
-        memcpy(dst_data + i * dst_linesize, data + i * lineszie, dst_linesize);
+        memcpy(dst_data + i * dst_linesize, src_data + i * src_linesize, dst_linesize);
     }
     ANativeWindow_unlockAndPost(window);
     pthread_mutex_unlock(&mutex);
@@ -61,10 +60,9 @@ JNIEXPORT void JNICALL
 Java_com_dramascript_inccamera_player_IncPlayer_native_1prepare(JNIEnv *env, jobject instance,
                                                                 jstring dataSource_) {
     const char *dataSource = env->GetStringUTFChars(dataSource_, 0);
-    //创建播放器
-    helper = new JavaCallHelper(javaVm, env, instance);
-    ffmpeg = new IncFFmpeg(helper, dataSource);
-    ffmpeg->setRenderFrameCallback(render);
+    javaCallHelper = new JavaCallHelper(javaVM, env, instance);
+    ffmpeg = new IncFFmpeg(javaCallHelper, dataSource);
+    ffmpeg->setRenderCallback(renderFrame);
     ffmpeg->prepare();
     env->ReleaseStringUTFChars(dataSource_, dataSource);
 }
@@ -77,8 +75,8 @@ Java_com_dramascript_inccamera_player_IncPlayer_native_1start(JNIEnv *env, jobje
 }
 
 JNIEXPORT void JNICALL
-Java_com_dramascript_inccamera_player_IncPlayer_native_1setSurface(JNIEnv *env, jobject thiz,
-                                                                   jobject surface) {
+Java_com_dramascript_inccamera_player_IncPlayer_native_1set_1surface(JNIEnv *env, jobject thiz,
+                                                                     jobject surface) {
     pthread_mutex_lock(&mutex);
     //先释放之前的显示窗口
     if (window) {
@@ -92,10 +90,14 @@ Java_com_dramascript_inccamera_player_IncPlayer_native_1setSurface(JNIEnv *env, 
 
 JNIEXPORT void JNICALL
 Java_com_dramascript_inccamera_player_IncPlayer_native_1stop(JNIEnv *env, jobject thiz) {
-//    if (ffmpeg) {
-//        ffmpeg->stop();
-//    }
-//    DELETE(helper);
+    if (ffmpeg) {
+        ffmpeg->stop();
+        ffmpeg = 0;
+    }
+    if (javaCallHelper) {
+        delete javaCallHelper;
+        javaCallHelper = 0;
+    }
 }
 
 JNIEXPORT void JNICALL
@@ -107,6 +109,23 @@ Java_com_dramascript_inccamera_player_IncPlayer_native_1release(JNIEnv *env, job
     }
     pthread_mutex_unlock(&mutex);
 }
+
+JNIEXPORT jint JNICALL
+Java_com_dramascript_inccamera_player_IncPlayer_native_1getDuration(JNIEnv *env, jobject thiz) {
+    if (ffmpeg) {
+        return ffmpeg->getDuration();
+    }
+    return 0;
+}
+
+JNIEXPORT void JNICALL
+Java_com_dramascript_inccamera_player_IncPlayer_native_1seek(JNIEnv *env, jobject thiz,
+                                                             jint progress) {
+    if (ffmpeg){
+        ffmpeg->seek(progress);
+    }
+}
+
 }
 
 // -------------------------------------------------------------------人脸检测--------------------------------------------------------------------

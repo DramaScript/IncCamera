@@ -7,6 +7,7 @@ import android.support.design.widget.FloatingActionButton;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
 import android.widget.GridView;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -18,6 +19,7 @@ import com.dramascript.dlibrary.base.DInject;
 import com.dramascript.dlibrary.base.adapter.listadapter.CommonAdapter;
 import com.dramascript.dlibrary.base.adapter.listadapter.ViewHolder;
 import com.dramascript.dlibrary.imageloader.ImageLoader;
+import com.dramascript.dlibrary.utils.NoMultiItemClickListener;
 import com.dramascript.inccamera.App;
 import com.dramascript.inccamera.R;
 import com.dramascript.inccamera.imp.ImpMvpActivity;
@@ -78,6 +80,14 @@ public class MainActivity extends ImpMvpActivity<CachePresenter> implements Cach
         };
         gridView.setAdapter(adapter);
         mPresenter.getCache();
+        gridView.setOnItemClickListener(new NoMultiItemClickListener() {
+            @Override
+            public void onNoMultiClick(AdapterView<?> parent, View v, int position, long id) {
+                Intent intent = new Intent(MainActivity.this,IncPlayerActivity.class);
+                intent.putExtra("url",lists.get(position).getImagePath());
+                ActivityUtils.startActivity(intent);
+            }
+        });
     }
 
     @Override
@@ -109,9 +119,7 @@ public class MainActivity extends ImpMvpActivity<CachePresenter> implements Cach
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getTitle()+""){
             case "直播播放":
-                Intent intent = new Intent(this,IncPlayerActivity.class);
-                intent.putExtra("url","rtmp://rtmp.miaobolive.com/live/5319085ed4a787408fbe486586f52540");
-                ActivityUtils.startActivity(intent);
+                ActivityUtils.startActivity(IncPlayerActivity.class);
                 break;
             case "直播推流":
 

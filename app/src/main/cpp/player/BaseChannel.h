@@ -1,65 +1,80 @@
-#ifndef PLAYER_BASECHANNEL_H
-#define PLAYER_BASECHANNEL_H
-
+#ifndef DNPLAYER_BASECHANNEL_H
+#define DNPLAYER_BASECHANNEL_H
 
 #include "safe_queue.h"
+#include "macro.h"
+#include "JavaCallHelper.h"
 
 extern "C" {
 #include <libavcodec/avcodec.h>
-};
+}
 
 class BaseChannel {
 public:
-    BaseChannel(int id, AVCodecContext *avCodecContext, AVRational time_base) : id(id),
-                                                                                avCodecContext(
-                                                                                        avCodecContext),
-                                                                                time_base(
-                                                                                        time_base) {
-        frames.setReleaseCallback(releaseAvFrame);
-        packets.setReleaseCallback(releaseAvPacket);
-    }
+    BaseChannel(int id, JavaCallHelper *javaCallHelper, AVCodecContext *avCodecContext,
+                AVRational base) : channelId(id),
+                                   javaCallHelper(javaCallHelper),
+                                   avCodecContext(avCodecContext),
+                                   time_base(base) {
+        pkt_queue.setReleaseHandle(releaseAvPacket);
+        frame_queue.setReleaseHandle(releaseAvFrame);
+    };
 
-    //virtual
     virtual ~BaseChannel() {
-        frames.clear();
-        packets.clear();
-    }
-
-    /**
-     * 释放 AVPacket
-     * @param packet
-     */
-    static void releaseAvPacket(AVPacket **packet) {
-        if (packet) {
-            av_packet_free(packet);
-            //为什么用指针的指针？
-            // 指针的指针能够修改传递进来的指针的指向
-            *packet = 0;
+        if (avCodecContext) {
+            avcodec_close(avCodecContext);
+            avcodec_free_context(&avCodecContext);
+            avCodecContext = 0;
         }
-    }
+        pkt_queue.clear();
+        frame_queue.clear();
+        LOGE("释放channel:%d %d", pkt_queue.size(), frame_queue.size());
+    };
 
-    static void releaseAvFrame(AVFrame **frame) {
-        if (frame) {
-            av_frame_free(frame);
-            //为什么用指针的指针？
-            // 指针的指针能够修改传递进来的指针的指向
-            *frame = 0;
-        }
-    }
 
-    //纯虚方法 相当于 抽象方法
     virtual void play() = 0;
 
-    int id;
-    //编码数据包队列
-    SafeQueue<AVPacket *> packets;
-    //解码数据包队列
-    SafeQueue<AVFrame *> frames;
-    bool isPlaying;
-    AVCodecContext *avCodecContext;
+    virtual void stop() = 0;
+
+    static void releaseAvFrame(AVFrame *&frame) {
+        if (frame) {
+            av_frame_free(&frame);
+            frame = 0;
+        }
+    }
+
+
+    static void releaseAvPacket(AVPacket *&packet) {
+        if (packet) {
+            av_packet_free(&packet);
+            packet = 0;
+        }
+    }
+
+    void clear() {
+        pkt_queue.clear();
+        frame_queue.clear();
+    }
+
+    void stopWork() {
+        pkt_queue.setWork(0);
+        frame_queue.setWork(0);
+    }
+
+    void startWork() {
+        pkt_queue.setWork(1);
+        frame_queue.setWork(1);
+    }
+
+    SafeQueue<AVPacket *> pkt_queue;
+    SafeQueue<AVFrame *> frame_queue;
+    double clock = 0;
+    volatile int channelId;
+    volatile bool isPlaying = false;
     AVRational time_base;
-public:
-    double clock;
+    AVCodecContext *avCodecContext;
+    JavaCallHelper *javaCallHelper;
 };
 
-#endif //PLAYER_BASECHANNEL_H
+
+#endif //DNPLAYER_AUDIOCHANNEL_H

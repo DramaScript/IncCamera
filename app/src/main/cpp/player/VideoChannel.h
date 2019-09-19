@@ -1,42 +1,38 @@
-#ifndef PLAYER_VIDEOCHANNEL_H
-#define PLAYER_VIDEOCHANNEL_H
+#ifndef DNPLAYER_VIDEOCHANNEL_H
+#define DNPLAYER_VIDEOCHANNEL_H
 
 
 #include "BaseChannel.h"
 #include "AudioChannel.h"
+#include <pthread.h>
+#include <android/native_window.h>
 
-extern "C" {
-#include <libswscale/swscale.h>
-};
+typedef void (*RenderFrame)(uint8_t *, int, int, int);
 
-/**
- * 1、解码
- * 2、播放
- */
-typedef void (*RenderFrameCallback)(uint8_t *,int,int,int);
 class VideoChannel : public BaseChannel {
 public:
-    VideoChannel(int id, AVCodecContext *avCodecContext,AVRational time_base,int fps);
+    VideoChannel(int id,JavaCallHelper *javaCallHelper, AVCodecContext *avCodecContext, AVRational base, int fps);
 
-    ~VideoChannel();
+    virtual ~VideoChannel();
 
-    void setAudioChannel(AudioChannel* audioChannel);
-    //解码+播放
-    void play();
+    virtual void play();
 
-    void decode();
+    virtual void stop();
 
-    void render();
+    void decodePacket();
 
-    void setRenderFrameCallback(RenderFrameCallback callback);
-private:
-    pthread_t pid_decode;
-    pthread_t pid_render;
-    int fps;
-    SwsContext *swsContext=0;
-    RenderFrameCallback callback;
+    void synchronizeFrame();
+
+    void setRenderCallback(RenderFrame renderFrame);
+
+public:
     AudioChannel *audioChannel = 0;
+private:
+    int fps;
+    pthread_t pid_video_play;
+    pthread_t pid_synchronize;
+    RenderFrame renderFrame;
 };
 
 
-#endif //PLAYER_VIDEOCHANNEL_H
+#endif //DNPLAYER_VIDEOCHANNEL_H

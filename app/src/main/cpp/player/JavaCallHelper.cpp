@@ -1,45 +1,57 @@
 #include "JavaCallHelper.h"
 #include "macro.h"
 
-JavaCallHelper::JavaCallHelper(JavaVM *vm, JNIEnv *env, jobject instace) {
-    this->vm = vm;
-    //如果在主线程 回调
-    this->env = env;
-    // 一旦涉及到jobject 跨方法 跨线程 就需要创建全局引用
-    this->instance = env->NewGlobalRef(instace);
+JavaCallHelper::JavaCallHelper(JavaVM *_javaVM, JNIEnv *_env, jobject &_jobj) : javaVM(_javaVM),
+                                                                                env(_env) {
+    jobj = env->NewGlobalRef(_jobj);
+    jclass jclazz = env->GetObjectClass(jobj);
 
-    jclass  clazz = env->GetObjectClass(instace);
-    onErrorId = env->GetMethodID(clazz,"onError","(I)V");
-    onPrepareId = env->GetMethodID(clazz,"onPrepare","()V");
+    jmid_error = env->GetMethodID(jclazz, "onError", "(I)V");
+    jmid_prepare = env->GetMethodID(jclazz, "onPrepare", "()V");
+    jmid_progress = env->GetMethodID(jclazz, "onProgress", "(I)V");
 }
 
 JavaCallHelper::~JavaCallHelper() {
-    env->DeleteGlobalRef(instance);
+    env->DeleteGlobalRef(jobj);
+    jobj = 0;
 }
 
-void JavaCallHelper::onError(int thread,int error){
-    //主线程
-    if (thread == THREAD_MAIN){
-       env->CallVoidMethod(instance,onErrorId,error);
-    } else{
-        //子线程
-        JNIEnv *env;
-        //获得属于我这一个线程的jnienv
-        vm->AttachCurrentThread(&env,0);
-        env->CallVoidMethod(instance,onErrorId,error);
-        vm->DetachCurrentThread();
+void JavaCallHelper::onError(int thread, int code) {
+    if (thread == THREAD_CHILD) {
+        JNIEnv *jniEnv;
+        if (javaVM->AttachCurrentThread(&jniEnv, 0) != JNI_OK) {
+            return;
+        }
+        jniEnv->CallVoidMethod(jobj, jmid_error, code);
+        javaVM->DetachCurrentThread();
+    } else {
+        env->CallVoidMethod(jobj, jmid_error, code);
+    }
+
+}
+
+void JavaCallHelper::onParpare(int thread) {
+    if (thread == THREAD_CHILD) {
+        JNIEnv *jniEnv;
+        if (javaVM->AttachCurrentThread(&jniEnv, 0) != JNI_OK) {
+            return;
+        }
+        jniEnv->CallVoidMethod(jobj, jmid_prepare);
+        javaVM->DetachCurrentThread();
+    } else {
+        env->CallVoidMethod(jobj, jmid_prepare);
     }
 }
 
-void JavaCallHelper::onPrepare(int thread) {
-    if (thread == THREAD_MAIN){
-        env->CallVoidMethod(instance,onPrepareId);
-    } else{
-        //子线程
-        JNIEnv *env;
-        //获得属于我这一个线程的jnienv
-        vm->AttachCurrentThread(&env,0);
-        env->CallVoidMethod(instance,onPrepareId);
-        vm->DetachCurrentThread();
+void JavaCallHelper::onProgress(int thread, int progress) {
+    if (thread == THREAD_CHILD) {
+        JNIEnv *jniEnv;
+        if (javaVM->AttachCurrentThread(&jniEnv, 0) != JNI_OK) {
+            return;
+        }
+        jniEnv->CallVoidMethod(jobj, jmid_progress, progress);
+        javaVM->DetachCurrentThread();
+    } else {
+        env->CallVoidMethod(jobj, jmid_progress, progress);
     }
 }

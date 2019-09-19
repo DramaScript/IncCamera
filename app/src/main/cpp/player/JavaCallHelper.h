@@ -1,23 +1,34 @@
-#ifndef PLAYER_JAVACALLHELPER_H
-#define PLAYER_JAVACALLHELPER_H
+#ifndef DNPLAYER_JAVACALLHELPER_H
+#define DNPLAYER_JAVACALLHELPER_H
 
 
 #include <jni.h>
 
+
 class JavaCallHelper {
+
+
 public:
-    JavaCallHelper(JavaVM *vm,JNIEnv* env,jobject instace);
+    JavaCallHelper(JavaVM *_javaVM, JNIEnv *_env, jobject &_jobj);
+
     ~JavaCallHelper();
-    //回调java
-    void  onError(int thread,int errorCode);
-    void onPrepare(int thread);
-private:
-    JavaVM *vm;
+
+    void onError(int thread, int code);
+
+    void onParpare(int thread);
+
+    void onProgress(int thread, int progress);
+
+public:
+    JavaVM *javaVM;
     JNIEnv *env;
-    jobject  instance;
-    jmethodID onErrorId;
-    jmethodID onPrepareId;
+    jobject jobj;
+    jmethodID jmid_error;
+    jmethodID jmid_prepare;
+    jmethodID jmid_progress;
+
+
 };
 
 
-#endif //PLAYER_JAVACALLHELPER_H
+#endif //DNPLAYER_JAVACALLHELPER_H

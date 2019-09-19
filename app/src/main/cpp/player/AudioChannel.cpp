@@ -1,177 +1,157 @@
+extern "C" {
+#include <libavutil/time.h>
+}
+
 #include "AudioChannel.h"
+#include "macro.h"
 
-
-// 声明并且实现
-void *audio_decode(void *args) {
-    AudioChannel *audioChannel = static_cast<AudioChannel *>(args);
-    audioChannel->decode();
+void *audioPlay(void *args) {
+    AudioChannel *audio = static_cast<AudioChannel *>(args);
+    audio->initOpenSL();
     return 0;
 }
 
-void *audio_play(void *args) {
-    AudioChannel *audioChannel = static_cast<AudioChannel *>(args);
-    audioChannel->_play();
+void *audioDecode(void *args) {
+    AudioChannel *audio = static_cast<AudioChannel *>(args);
+    audio->decode();
     return 0;
 }
 
-AudioChannel::AudioChannel(int id, AVCodecContext *avCodecContext,AVRational time_base) : BaseChannel(id,
-                                                                                 avCodecContext,time_base) {
+//void dropAudioFrame(queue<AVFrame *> &q) {
+//    int size = q.size() - 200;
+//    while (size > 0) {
+//        LOGE("丢弃音频......");
+//        AVFrame *frame = q.front();
+//        q.pop();
+//        BaseChannel::releaseAvFrame(frame);
+//        size--;
+//    }
+//}
+
+AudioChannel::AudioChannel(int id, JavaCallHelper *javaCallHelper, AVCodecContext *avCodecContext,
+                           AVRational base) : BaseChannel(
+        id, javaCallHelper, avCodecContext, base) {
+
+    //根据布局获取声道数
     out_channels = av_get_channel_layout_nb_channels(AV_CH_LAYOUT_STEREO);
     out_samplesize = av_get_bytes_per_sample(AV_SAMPLE_FMT_S16);
     out_sample_rate = 44100;
-    //44100个16位 44100 * 2
-    // 44100*(双声道)*(16位)
-    data = static_cast<uint8_t *>(malloc(out_sample_rate * out_channels * out_samplesize));
-    memset(data,0,out_sample_rate * out_channels * out_samplesize);
+    //CD音频标准
+    //44100 双声道 2字节
+    buffer = (uint8_t *) malloc(out_sample_rate * out_samplesize * out_channels);
+//    frame_queue.setSyncHandle(dropAudioFrame);
 }
+
 
 AudioChannel::~AudioChannel() {
-    if(data){
-        free(data);
-        data = 0;
-    }
+    free(buffer);
+    buffer = 0;
+
 }
 
+
 void AudioChannel::play() {
-    //设置为播放状态
-    packets.setWork(1);
-    frames.setWork(1);
-    //0+输出声道+输出采样位+输出采样率+  输入的3个参数
-    swrContext = swr_alloc_set_opts(0, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, out_sample_rate,
-                                    avCodecContext->channel_layout, avCodecContext->sample_fmt,
-                                    avCodecContext->sample_rate, 0, 0);
-    //初始化
-    swr_init(swrContext);
-    isPlaying = 1;
-    //1 、解码
-    pthread_create(&pid_audio_decode, 0, audio_decode, this);
-    //2、 播放
-    pthread_create(&pid_audio_play, 0, audio_play, this);
+    //重采样为固定的双声道 16位 44100
+    swr_ctx = swr_alloc_set_opts(0, AV_CH_LAYOUT_STEREO, AV_SAMPLE_FMT_S16, out_sample_rate,
+                                 avCodecContext->channel_layout,
+                                 avCodecContext->sample_fmt,
+                                 avCodecContext->sample_rate, 0, 0);
+    swr_init(swr_ctx);
+    startWork();
+    isPlaying = true;
+    pthread_create(&pid_audio_play, NULL, audioPlay, this);
+    pthread_create(&pid_audio_decode, NULL, audioDecode, this);
+}
+
+
+//第一次主动调用在调用线程
+//之后在新线程中回调
+void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
+    AudioChannel *audioChannel = static_cast<AudioChannel *>(context);
+    int datalen = audioChannel->getPcm();
+    if (datalen > 0) {
+        (*bq)->Enqueue(bq, audioChannel->buffer, datalen);
+    }
 }
 
 
 void AudioChannel::decode() {
     AVPacket *packet = 0;
     while (isPlaying) {
-        //取出一个数据包
-        int ret = packets.pop(packet);
+        int ret = pkt_queue.deQueue(packet);
         if (!isPlaying) {
             break;
         }
-        //取出失败
         if (!ret) {
             continue;
         }
-        //把包丢给解码器
         ret = avcodec_send_packet(avCodecContext, packet);
-        releaseAvPacket(&packet);
-        //重试
-        if (ret != 0) {
-            break;
-        }
-        //代表了一个图像 (将这个图像先输出来)
-        AVFrame *frame = av_frame_alloc();
-        //从解码器中读取 解码后的数据包 AVFrame
-        ret = avcodec_receive_frame(avCodecContext, frame);
-        //需要更多的数据才能够进行解码
+        releaseAvPacket(packet);
         if (ret == AVERROR(EAGAIN)) {
+            //需要更多数据
             continue;
-        } else if (ret != 0) {
+        } else if (ret < 0) {
+            //失败
             break;
         }
-        //再开一个线程 来播放 (流畅度)
-        frames.push(frame);
-    }
-    releaseAvPacket(&packet);
-};
-
-//返回获取的pcm数据大小
-int AudioChannel::getPcm() {
-    int data_size = 0;
-    AVFrame *frame;
-    int ret = frames.pop(frame);
-    if (!isPlaying) {
-        if (ret) {
-            releaseAvFrame(&frame);
+        AVFrame *frame = av_frame_alloc();
+        ret = avcodec_receive_frame(avCodecContext, frame);
+        if (ret == AVERROR(EAGAIN)) {
+            //需要更多数据
+            continue;
+        } else if (ret < 0) {
+            break;
         }
-        return data_size;
+        while (frame_queue.size() > 100 && isPlaying) {
+            av_usleep(1000 * 10);
+            continue;
+        }
+        frame_queue.enQueue(frame);
     }
-    //48000HZ 8位 =》 44100 16位
-    //重采样
-    // 假设我们输入了10个数据 ，swrContext转码器 这一次处理了8个数据
-    // 那么如果不加delays(上次没处理完的数据) , 积压
-    int64_t delays = swr_get_delay(swrContext,frame->sample_rate);
-    // 将 nb_samples 个数据 由 sample_rate采样率转成 44100 后 返回多少个数据
-    // 10  个 48000 = nb 个 44100
-    // AV_ROUND_UP : 向上取整 1.1 = 2
-    int64_t max_samples =  av_rescale_rnd(delays+frame->nb_samples,out_sample_rate,frame->sample_rate,AV_ROUND_UP);
-    //上下文+输出缓冲区+输出缓冲区能接受的最大数据量+输入数据+输入数据个数
-    //返回 每一个声道的输出数据个数
-    int samples = swr_convert(swrContext, &data, max_samples, (const uint8_t **)frame->data, frame->nb_samples);
-    //获得   samples 个   * 2 声道 * 2字节（16位）
-    data_size =  samples * out_samplesize * out_channels;
-    //获取 frame 的一个相对播放时间 （相对开始播放）
-    // 获得 相对播放这一段数据的秒数
-    clock = frame->pts * av_q2d(time_base);
-    return data_size;
+    releaseAvPacket(packet);
 }
 
-void bqPlayerCallback(SLAndroidSimpleBufferQueueItf bq, void *context) {
-    AudioChannel *audioChannel = static_cast<AudioChannel *>(context);
-    //获得pcm 数据 多少个字节 data
-    int dataSize = audioChannel->getPcm();
-    if(dataSize > 0 ){
-        // 接收16位数据
-        (*bq)->Enqueue(bq,audioChannel->data,dataSize);
-    }
-}
 
-void AudioChannel::_play() {
-    /**
-     * 1、创建引擎并获取引擎接口
-     */
+void AudioChannel::initOpenSL() {
+    //创建引擎
     SLresult result;
-    // 1.1 创建引擎 SLObjectItf engineObject
+    // 创建引擎engineObject
     result = slCreateEngine(&engineObject, 0, NULL, 0, NULL, NULL);
     if (SL_RESULT_SUCCESS != result) {
         return;
     }
-    // 1.2 初始化引擎  init
+    // 初始化引擎engineObject
     result = (*engineObject)->Realize(engineObject, SL_BOOLEAN_FALSE);
     if (SL_RESULT_SUCCESS != result) {
         return;
     }
-    // 1.3 获取引擎接口SLEngineItf engineInterface
+    // 获取引擎接口engineEngine
     result = (*engineObject)->GetInterface(engineObject, SL_IID_ENGINE,
                                            &engineInterface);
     if (SL_RESULT_SUCCESS != result) {
         return;
     }
 
-    /**
-     * 2、设置混音器
-     */
-    // 2.1 创建混音器SLObjectItf outputMixObject
-    result = (*engineInterface)->CreateOutputMix(engineInterface, &outputMixObject, 0,
-                                                 0, 0);
+    // 创建混音器outputMixObject
+    result = (*engineInterface)->CreateOutputMix(engineInterface, &outputMixObject, 0, 0, 0);
     if (SL_RESULT_SUCCESS != result) {
         return;
     }
-    // 2.2 初始化混音器outputMixObject
+
+    // 初始化混音器outputMixObject
     result = (*outputMixObject)->Realize(outputMixObject, SL_BOOLEAN_FALSE);
     if (SL_RESULT_SUCCESS != result) {
         return;
     }
 
+
     /**
-     * 3、创建播放器
+     * 配置输入声音信息
      */
-    //3.1 配置输入声音信息
     //创建buffer缓冲类型的队列 2个队列
     SLDataLocator_AndroidSimpleBufferQueue android_queue = {SL_DATALOCATOR_ANDROIDSIMPLEBUFFERQUEUE,
                                                             2};
     //pcm数据格式
-    //pcm+2(双声道)+44100(采样率)+ 16(采样位)+16(数据的大小)+LEFT|RIGHT(双声道)+小端数据
     SLDataFormat_PCM pcm = {SL_DATAFORMAT_PCM, 2, SL_SAMPLINGRATE_44_1, SL_PCMSAMPLEFORMAT_FIXED_16,
                             SL_PCMSAMPLEFORMAT_FIXED_16,
                             SL_SPEAKER_FRONT_LEFT | SL_SPEAKER_FRONT_RIGHT,
@@ -180,39 +160,110 @@ void AudioChannel::_play() {
     //数据源 将上述配置信息放到这个数据源中
     SLDataSource slDataSource = {&android_queue, &pcm};
 
-    //3.2  配置音轨(输出)
+
     //设置混音器
     SLDataLocator_OutputMix outputMix = {SL_DATALOCATOR_OUTPUTMIX, outputMixObject};
     SLDataSink audioSnk = {&outputMix, NULL};
-    //需要的接口  操作队列的接口
+    //需要的接口
     const SLInterfaceID ids[1] = {SL_IID_BUFFERQUEUE};
     const SLboolean req[1] = {SL_BOOLEAN_TRUE};
-    //3.3 创建播放器
+    //创建播放器
     (*engineInterface)->CreateAudioPlayer(engineInterface, &bqPlayerObject, &slDataSource,
                                           &audioSnk, 1,
                                           ids, req);
     //初始化播放器
     (*bqPlayerObject)->Realize(bqPlayerObject, SL_BOOLEAN_FALSE);
 
-    //得到接口后调用  获取Player接口
+//    得到接口后调用  获取Player接口
     (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_PLAY, &bqPlayerInterface);
 
-
-    /**
-     * 4、设置播放回调函数
-     */
-    //获取播放器队列接口
+//    获得播放器接口
     (*bqPlayerObject)->GetInterface(bqPlayerObject, SL_IID_BUFFERQUEUE,
-                                    &bqPlayerBufferQueueInterface);
+                                    &bqPlayerBufferQueue);
     //设置回调
-    (*bqPlayerBufferQueueInterface)->RegisterCallback(bqPlayerBufferQueueInterface,
-                                                      bqPlayerCallback, this);
-    /**
-     * 5、设置播放状态
-     */
+    (*bqPlayerBufferQueue)->RegisterCallback(bqPlayerBufferQueue, bqPlayerCallback, this);
+//    设置播放状态
     (*bqPlayerInterface)->SetPlayState(bqPlayerInterface, SL_PLAYSTATE_PLAYING);
-    /**
-     * 6、手动激活一下这个回调
-     */
-    bqPlayerCallback(bqPlayerBufferQueueInterface, this);
+
+    bqPlayerCallback(bqPlayerBufferQueue, this);
 }
+
+
+int AudioChannel::getPcm() {
+    int data_size = 0;
+    AVFrame *frame = 0;
+    while (isPlaying) {
+        int ret = frame_queue.deQueue(frame);
+        if (!isPlaying) {
+            break;
+        }
+        if (!ret) {
+            continue;
+        }
+        // 计算转换后的sample个数  类似 a * b / c
+        // swr_get_delay： 延迟时间:  输入了10个 数据，可能这次转换只转换了8个数据，那么还剩余2个 这一个函数就是得到上一次剩余的这个2
+        // av_rescale_rnd： 以3为单位的1 转为以2为单位
+        // 10个2=20
+        // 转成 以4 为单位
+        // 10*4/2
+        uint64_t dst_nb_samples = av_rescale_rnd(
+                swr_get_delay(swr_ctx, frame->sample_rate) + frame->nb_samples,
+                out_sample_rate,
+                frame->sample_rate,
+                AV_ROUND_UP);
+        // 转换，返回值为转换后的sample个数
+        int nb = swr_convert(swr_ctx, &buffer, dst_nb_samples,
+                             (const uint8_t **) frame->data, frame->nb_samples);
+        //转换后多少数据
+        data_size = nb * out_channels * out_samplesize;
+        //音频的时间
+        clock = frame->best_effort_timestamp * av_q2d(time_base);
+        if (javaCallHelper) {
+            javaCallHelper->onProgress(THREAD_CHILD, clock);
+        }
+        break;
+    }
+    releaseAvFrame(frame);
+    return data_size;
+}
+
+void AudioChannel::releaseOpenSL() {
+    //设置停止状态
+    if (bqPlayerInterface) {
+        (*bqPlayerInterface)->SetPlayState(bqPlayerInterface, SL_PLAYSTATE_STOPPED);
+        bqPlayerInterface = 0;
+    }
+    //销毁播放器
+    if (bqPlayerObject) {
+        (*bqPlayerObject)->Destroy(bqPlayerObject);
+        bqPlayerObject = 0;
+        bqPlayerBufferQueue = 0;
+    }
+    //销毁混音器
+    if (outputMixObject) {
+        (*outputMixObject)->Destroy(outputMixObject);
+        outputMixObject = 0;
+    }
+    //销毁引擎
+    if (engineObject) {
+        (*engineObject)->Destroy(engineObject);
+        engineObject = 0;
+        engineInterface = 0;
+    }
+}
+
+void AudioChannel::stop() {
+    isPlaying = 0;
+    javaCallHelper = 0;
+    stopWork();
+    pthread_join(pid_audio_decode, 0);
+    pthread_join(pid_audio_play, 0);
+
+    releaseOpenSL();
+    if (swr_ctx) {
+        swr_free(&swr_ctx);
+        swr_ctx = 0;
+    }
+}
+
+
