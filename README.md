@@ -2,7 +2,7 @@
 从0开始集相机+滤镜+美颜+大眼+贴纸+拍照+录制+直播推流+直播播放+视频与图像编辑为一体的最底层实现，不使用任何商用API。
 
 ## 功能
-大致实现抖音核心功能，所有C/C++库都来自开源项目：`OpenGL-ES`，`OpenCV`，`OpenSL`，`LibRtmp`，`FFmpeg`，`X264`，`SeetaFaceEngine`，同时支持软硬解切换，demo写之不易，麻烦给个五星好评，哈哈哈！
+大致实现抖音核心功能，所有C/C++库都来自开源项目：`OpenGL-ES`，`OpenCV`，`OpenSL`，`LibRtmp`，`FFmpeg`，`X264`，`SeetaFaceEngine`，同时支持软硬解切换，demo写之不易，麻烦给个start好评，哈哈哈！
 
 ## 进度
 2019-9-12: 实现了录制，美颜，大眼，贴纸功能
