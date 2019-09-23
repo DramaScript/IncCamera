@@ -1,8 +1,8 @@
 #ifndef DNPLAYER_BASECHANNEL_H
 #define DNPLAYER_BASECHANNEL_H
 
-#include "safe_queue.h"
-#include "macro.h"
+#include "../safe_queue.h"
+#include "../macro.h"
 #include "JavaCallHelper.h"
 
 extern "C" {

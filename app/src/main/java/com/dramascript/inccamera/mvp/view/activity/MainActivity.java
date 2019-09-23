@@ -34,7 +34,7 @@ import java.util.List;
 import butterknife.BindView;
 
 @DInject(
-        contentViewId = R.layout.activity_main
+        contentViewId = R.layout.ac_main
 )
 public class MainActivity extends ImpMvpActivity<CachePresenter> implements CacheContract.View {
 
@@ -122,7 +122,7 @@ public class MainActivity extends ImpMvpActivity<CachePresenter> implements Cach
                 ActivityUtils.startActivity(IncPlayerActivity.class);
                 break;
             case "直播推流":
-
+                ActivityUtils.startActivity(PusherActivity.class);
                 break;
         }
         return super.onOptionsItemSelected(item);

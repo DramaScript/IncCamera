@@ -3,7 +3,7 @@ extern "C" {
 }
 
 #include "AudioChannel.h"
-#include "macro.h"
+#include "../macro.h"
 
 void *audioPlay(void *args) {
     AudioChannel *audio = static_cast<AudioChannel *>(args);

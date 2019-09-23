@@ -1,5 +1,5 @@
 #include "JavaCallHelper.h"
-#include "macro.h"
+#include "../macro.h"
 
 JavaCallHelper::JavaCallHelper(JavaVM *_javaVM, JNIEnv *_env, jobject &_jobj) : javaVM(_javaVM),
                                                                                 env(_env) {

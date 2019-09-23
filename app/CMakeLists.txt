@@ -7,12 +7,14 @@ set(JNILIBS_DIR ${CMAKE_SOURCE_DIR}/src/main/jniLibs/${ANDROID_ABI})
 file(GLOB SOURCE src/main/cpp/*.cpp )
 file(GLOB PLAYER src/main/cpp/player/*.cpp )
 file(GLOB TRACK src/main/cpp/track/*.cpp )
+file(GLOB PUSHER src/main/cpp/pusher/*.cpp )
 add_library(
         native-lib
         SHARED
         ${SOURCE}
         ${PLAYER}
-        ${TRACK})
+        ${TRACK}
+        ${PUSHER})
 
 # opencv 图像处理
 include_directories(${CMAKE_SOURCE_DIR}/src/main/cpp/include)
@@ -29,6 +31,10 @@ include_directories(${CMAKE_SOURCE_DIR}/src/main/cpp/ffmpegInclude)
 set(my_lib_path ${CMAKE_SOURCE_DIR}/src/main/cpp/${ANDROID_ABI})
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L${my_lib_path} ")
 
+# 引入FAAC库 引入指定目录下的CMakeLists.txt
+add_subdirectory(src/main/cpp/librtmp)
+include_directories(${CMAKE_SOURCE_DIR}/src/main/cpp/faacX264Include)
+
 # 注意FFmpeg的库的顺序 不然会报错，并且 一定要导入z库
 target_link_libraries(
         native-lib
@@ -39,4 +45,7 @@ target_link_libraries(
         z
         OpenSLES
         android
+        rtmp
+        x264
+        faac
 )

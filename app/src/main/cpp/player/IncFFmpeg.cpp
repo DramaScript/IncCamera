@@ -1,5 +1,5 @@
 #include "IncFFmpeg.h"
-#include "macro.h"
+#include "../macro.h"
 
 
 void *prepareFFmpeg_(void *args) {

@@ -5,7 +5,7 @@ extern "C" {
 #include <libswscale/swscale.h>
 }
 
-#include "macro.h"
+#include "../macro.h"
 #include "VideoChannel.h"
 
 void *decode(void *args) {
@@ -163,7 +163,7 @@ void VideoChannel::synchronizeFrame() {
                         av_usleep((delay + diff) * 1000000);
                     }
                 } else {
-                    //音频比视频快
+                    //视频比音频慢
                     //视频慢了 0.05s 已经比较明显了 (丢帧)
                     if (diff > 1) {
                         //一种可能： 快进了(因为解码器中有缓存数据，这样获得的avframe就和seek的匹配了)

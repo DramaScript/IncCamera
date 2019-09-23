@@ -1,7 +1,3 @@
-//
-// Created by Lance on 2017/11/6.
-//
-
 #ifndef FACECAMERA_FACETRACK_H
 #define FACECAMERA_FACETRACK_H
 

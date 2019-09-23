@@ -9,9 +9,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.EditText;
 import android.widget.SeekBar;
-import android.widget.Toast;
 
-import com.blankj.utilcode.util.LogUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.dramascript.dlibrary.base.DInject;
 import com.dramascript.inccamera.R;
@@ -24,7 +22,7 @@ import butterknife.BindView;
  * Cread By DramaScript on 2019/9/17
  */
 @DInject(
-        contentViewId = R.layout.activity_play
+        contentViewId = R.layout.ac_play
 )
 public class IncPlayerActivity extends ImpBaseActivity implements SeekBar.OnSeekBarChangeListener {
 
@@ -122,7 +120,7 @@ public class IncPlayerActivity extends ImpBaseActivity implements SeekBar.OnSeek
 
     private void showInput() {
         final EditText et = new EditText(this);
-        et.setText("http://hdl.miaobolive.com/live/ceb674ade025be36baa7e996194e1199.flv");
+        et.setText("rtmp://58.200.131.2:1935/livetv/hunantv");
         new AlertDialog.Builder(this).setTitle("请输入RTMP/HTTP播放地址")
                 .setView(et)
                 .setPositiveButton("确定", new DialogInterface.OnClickListener() {
@@ -158,7 +156,7 @@ public class IncPlayerActivity extends ImpBaseActivity implements SeekBar.OnSeek
         } else {
             getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         }
-        setContentView(R.layout.activity_play);
+        setContentView(R.layout.ac_play);
         SurfaceView surfaceView = findViewById(R.id.surfaceView);
         incPlayer.setSurfaceView(surfaceView);
         incPlayer.setDataSource(url);

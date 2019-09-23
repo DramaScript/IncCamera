@@ -1,7 +1,3 @@
-//
-// Created by Lance on 2017/11/6.
-//
-
 #include "FaceTrack.h"
 
 
